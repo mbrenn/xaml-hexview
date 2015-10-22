@@ -13,8 +13,10 @@
             <ColumnDefinition />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <Universal:HexViewControl Grid.Column="0" x:Name="ByteView0" />
-        <Universal:HexViewControl Grid.Column="1" x:Name="ByteView2" />
+        <Universal:HexViewControl Grid.Column="0" x:Name="ByteView0" 
+                                  Margin="10"/>
+        <Universal:HexViewControl Grid.Column="1" x:Name="ByteView2" 
+                                  Margin="10"/>
 
     </Grid>
 </Page>

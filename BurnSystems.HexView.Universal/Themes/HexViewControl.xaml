@@ -9,17 +9,17 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
 
-    <Grid Background="Aqua">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <Canvas x:Name="mainContainer" SizeChanged="Conavas_SizeChanged">
+        <Canvas x:Name="mainContainer" SizeChanged="Canvas_SizeChanged">
             <TextBlock FontFamily="Consolas"></TextBlock>
         </Canvas>
         <ScrollBar Grid.Column="1" 
-                   x:Name="scrollBar" Padding="50" Margin="5" 
-                    Minimum="0" Maximum="5" ViewportSize="1" IndicatorMode="MouseIndicator"
-                   Width="50" Scroll="scrollBar_Scroll"></ScrollBar>
+                   x:Name="scrollBar" Margin="5,0,0,0" 
+                   IndicatorMode="MouseIndicator"
+                   Scroll="scrollBar_Scroll"></ScrollBar>
     </Grid>
 </UserControl>

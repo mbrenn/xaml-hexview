@@ -24,7 +24,7 @@ namespace BurnSystems.HexView.Universal
             new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
         static char[] hexLettersBig =
-            new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+               new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         /// <summary>
         /// Gets or sets the bytes to be shown
@@ -35,7 +35,7 @@ namespace BurnSystems.HexView.Universal
             set
             {
                 SetValue(BytesProperty, value);
-                UpdateScrollbarProperties();
+                this.UpdateScrollbarProperties();
                 this.UpdateContent();
             }
         }
@@ -62,22 +62,19 @@ namespace BurnSystems.HexView.Universal
             InitializeComponent();
         }
 
-        private void Conavas_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            RecreateElements(e.NewSize);
-            UpdateScrollbarProperties();
-        }
-
         private void UpdateScrollbarProperties()
         {
             var bytes = Bytes;
             if (bytes == null || columns <= 0)
             {
+                this.scrollBar.Visibility = Visibility.Collapsed;
                 return;
             }
 
+            this.scrollBar.Visibility = Visibility.Visible;
+
             var rowsInScreen = this.rows;
-            var totalRows = bytes.Length / columns;
+            var totalRows = bytes.Length / this.columns;
 
             this.scrollBar.Value = 0;
             this.scrollBar.Minimum = 0;
@@ -125,6 +122,11 @@ namespace BurnSystems.HexView.Universal
             }
         }
 
+        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RecreateElements(e.NewSize);
+        }
+
         private void RecreateElements(Size newSize)
         {
             this.mainContainer.Children.Clear();
@@ -144,7 +146,7 @@ namespace BurnSystems.HexView.Universal
 
             columns = Convert.ToInt32(Math.Floor(newSize.Width / blockSize.Width));
             rows = Convert.ToInt32(Math.Floor(newSize.Height / blockSize.Height));
-
+            
             byteBlocks = new TextBlock[columns * rows];
 
             var watch = new Stopwatch();
@@ -171,6 +173,7 @@ namespace BurnSystems.HexView.Universal
             watch.Stop();
             Debug.WriteLine($"Elapsed: {watch.Elapsed.ToString()}");
 
+            this.UpdateScrollbarProperties();
             this.UpdateContent();
         }
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -35,15 +36,27 @@ namespace BurnSystems.HexView.Universal
             set
             {
                 SetValue(BytesProperty, value);
+                this.CurrentlySelected = -1;
                 this.UpdateScrollbarProperties();
                 this.UpdateContent();
             }
+        }
+        
+        public int CurrentlySelected
+        {
+            get;
+            private set;
         }
 
         /// <summary>
         /// Stores the textblocks storing the byte information
         /// </summary>
         private TextBlock[] byteBlocks;
+
+        /// <summary>
+        /// Stores the blocksize of an element
+        /// </summary>
+        private Size blockSize;
 
         /// <summary>
         /// Stores the number of columns
@@ -54,6 +67,7 @@ namespace BurnSystems.HexView.Universal
         /// Stores the number of rows
         /// </summary>
         private int rows;
+
         public static readonly DependencyProperty BytesProperty =
             DependencyProperty.Register("Bytes", typeof(byte[]), typeof(HexViewControl), new PropertyMetadata(new byte[] { }));
         
@@ -127,6 +141,16 @@ namespace BurnSystems.HexView.Universal
             RecreateElements(e.NewSize);
         }
 
+        private Size CalculatePosition(int index)
+        {
+            var row = index / this.columns;
+            var column = index % this.columns;
+
+            return new Size(
+                column * this.blockSize.Width,
+                row * this.blockSize.Height);
+        }
+
         private void RecreateElements(Size newSize)
         {
             this.mainContainer.Children.Clear();
@@ -142,8 +166,13 @@ namespace BurnSystems.HexView.Universal
             textBox.FontFamily = new FontFamily("Consolas");
             textBox.Arrange(new Rect(0, 0, 1000, 1000));
             textBox.Measure(new Size(1000, 1000));
-            var blockSize = textBox.DesiredSize;
+            this.blockSize = textBox.DesiredSize;
 
+            // Calculates the selection box sizes
+            this.SelectionBox.Width = this.blockSize.Width + 2;
+            this.SelectionBox.Height = this.blockSize.Height + 2;
+
+            // Creates the elements
             columns = Convert.ToInt32(Math.Floor(newSize.Width / blockSize.Width));
             rows = Convert.ToInt32(Math.Floor(newSize.Height / blockSize.Height));
             
@@ -151,23 +180,39 @@ namespace BurnSystems.HexView.Universal
 
             var watch = new Stopwatch();
             watch.Start();
-            var n = 0;
-            for (var r = 0; r < rows; r++)
+            for (var n = 0; n < rows * columns; n++)
             {
-                for (var c = 0; c < columns; c++)
-                {
-                    var block = new TextBlock();
-                    block.Width = blockSize.Width;
-                    block.Height = blockSize.Height;
-                    mainContainer.Children.Add(block);
-                    Canvas.SetLeft(block, c * blockSize.Width);
-                    Canvas.SetTop(block, r * blockSize.Height);
-                    block.Text = "AA ";
-                    block.FontFamily = textBox.FontFamily;
+                var block = new TextBlock();
+                block.Width = blockSize.Width;
+                block.Height = blockSize.Height;
+                mainContainer.Children.Add(block);
+                var position = this.CalculatePosition(n);
+                Canvas.SetLeft(block, position.Width);
+                Canvas.SetTop(block, position.Height);
+                block.Text = "AA ";
+                block.FontFamily = textBox.FontFamily;
 
-                    this.byteBlocks[n] = block;
-                    n++;
-                }
+                int m = n;
+                block.PointerPressed += (x, y) =>
+                  {
+                      Debug.WriteLine(m);
+
+                      if (this.CurrentlySelected != -1)
+                      {
+                          this.byteBlocks[this.CurrentlySelected].FontWeight =
+                            FontWeights.Normal;
+                      }
+
+                      this.SelectionBox.Margin = new Thickness(
+                          position.Width - 5,
+                          position.Height - 2,
+                          0, 0);
+                      this.SelectionBox.Visibility = Visibility.Visible;
+                      block.FontWeight = FontWeights.Bold;
+                      this.CurrentlySelected = m;
+                  };
+
+                this.byteBlocks[n] = block;
             }
 
             watch.Stop();

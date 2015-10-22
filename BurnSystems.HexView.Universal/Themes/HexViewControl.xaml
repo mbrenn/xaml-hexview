@@ -20,6 +20,10 @@
         <ScrollBar Grid.Column="1" 
                    x:Name="scrollBar" Margin="5,0,0,0" 
                    IndicatorMode="MouseIndicator"
-                   Scroll="scrollBar_Scroll"></ScrollBar>
+                   Scroll="scrollBar_Scroll">
+        </ScrollBar>
+        <Rectangle Width="30" Height="10" x:Name="SelectionBox"
+                   StrokeThickness="2" Stroke="Blue"  Visibility="Collapsed"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"/>
     </Grid>
 </UserControl>

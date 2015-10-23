@@ -70,7 +70,12 @@ namespace BurnSystems.HexView.Universal
 
         public static readonly DependencyProperty BytesProperty =
             DependencyProperty.Register("Bytes", typeof(byte[]), typeof(HexViewControl), new PropertyMetadata(new byte[] { }));
-        
+
+        /// <summary>
+        /// This event will be thrown, when the user changes the selection
+        /// </summary>
+        public event EventHandler SelectionChanged;
+
         public HexViewControl()
         {
             InitializeComponent();
@@ -195,8 +200,7 @@ namespace BurnSystems.HexView.Universal
                 int m = n;
                 block.PointerPressed += (x, y) =>
                   {
-                      Debug.WriteLine(m);
-
+                      // Remove selection of old field
                       if (this.CurrentlySelected != -1)
                       {
                           this.byteBlocks[this.CurrentlySelected].FontWeight =
@@ -210,6 +214,8 @@ namespace BurnSystems.HexView.Universal
                       this.SelectionBox.Visibility = Visibility.Visible;
                       block.FontWeight = FontWeights.Bold;
                       this.CurrentlySelected = m;
+
+                      this.OnSelectionChanged(m);
                   };
 
                 this.byteBlocks[n] = block;
@@ -225,6 +231,15 @@ namespace BurnSystems.HexView.Universal
         private void scrollBar_Scroll(object sender, ScrollEventArgs e)
         {
             this.UpdateContent();
+        }
+
+        private void OnSelectionChanged(int index)
+        {
+            var ev = this.SelectionChanged;
+            if ( ev != null)
+            {
+                ev(this, EventArgs.Empty);
+            }
         }
     }
 }

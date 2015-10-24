@@ -1,11 +1,15 @@
-﻿using System;
+﻿using Microsoft.Graphics.Canvas.Text;
+using Microsoft.Graphics.Canvas.UI.Xaml;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI;
 using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -38,7 +42,7 @@ namespace BurnSystems.HexView.Universal
                 SetValue(BytesProperty, value);
                 this.CurrentlySelected = -1;
                 this.UpdateScrollbarProperties();
-                this.UpdateContent();
+                //this.UpdateContent();
             }
         }
         
@@ -49,14 +53,9 @@ namespace BurnSystems.HexView.Universal
         }
 
         /// <summary>
-        /// Stores the textblocks storing the byte information
-        /// </summary>
-        private TextBlock[] byteBlocks;
-
-        /// <summary>
         /// Stores the blocksize of an element
         /// </summary>
-        private Size blockSize;
+        private Vector2 blockSize;
 
         /// <summary>
         /// Stores the number of columns
@@ -81,61 +80,30 @@ namespace BurnSystems.HexView.Universal
             InitializeComponent();
         }
 
-        private void RecreateElements(Size newSize)
+
+        private void UpdateScrollbarProperties()
         {
-            this.mainContainer.Children.Clear();
-            if (Double.IsNaN(newSize.Width) || Double.IsNaN(newSize.Height))
+            var bytes = Bytes;
+            if (bytes == null || columns <= 0)
             {
-                // Nothing to do yet
+                this.scrollBar.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            // Create an examplary textblock being used to estimate the number of necessary elements
-            this.blockSize = new Size(25, 20);
+            this.scrollBar.Visibility = Visibility.Visible;
 
-            // Calculates the selection box sizes
-            this.SelectionBox.Width = this.blockSize.Width + 4;
-            this.SelectionBox.Height = this.blockSize.Height + 4;
+            var rowsInScreen = this.rows;
+            var totalRows = bytes.Length / this.columns;
 
-            // Creates the elements
-            columns = Convert.ToInt32(Math.Floor(newSize.Width / blockSize.Width));
-            rows = Convert.ToInt32(Math.Floor(newSize.Height / blockSize.Height));
-
-            byteBlocks = new TextBlock[columns * rows];
-            var fontFamily = new FontFamily("Consolas");
-
-            var watch = new Stopwatch();
-            watch.Start();
-            for (var n = 0; n < rows * columns; n++)
-            {
-                var block = new TextBlock();
-                block.Width = blockSize.Width;
-                block.Height = blockSize.Height;
-                mainContainer.Children.Add(block);
-
-                var position = this.CalculatePosition(n);
-                block.Margin = new Thickness(position.Width, position.Height, 0, 0);
-                block.HorizontalAlignment = HorizontalAlignment.Left;
-                block.VerticalAlignment = VerticalAlignment.Top;
-                block.FontFamily = fontFamily;
-
-                int m = n;
-                block.PointerPressed += (x, y) =>
-                {
-                    blockPressed(block, position, m);
-                };
-
-                this.byteBlocks[n] = block;
-            }
-
-            watch.Stop();
-            Debug.WriteLine($"Elapsed: {watch.Elapsed.ToString()}");
-
-            this.UpdateScrollbarProperties();
-            this.UpdateContent();
+            //this.scrollBar.Value = 0;
+            this.scrollBar.Minimum = 0;
+            this.scrollBar.Maximum = totalRows;
+            this.scrollBar.LargeChange = Math.Max(rowsInScreen - 1, 1);
+            this.scrollBar.SmallChange = 1;
+            this.scrollBar.ViewportSize = rowsInScreen;
         }
 
-        private void blockPressed(TextBlock block, Size position, int m)
+        /*        private void blockPressed(TextBlock block, Size position, int m)
         {
             // Remove selection of old field
             if (this.CurrentlySelected != -1)
@@ -154,17 +122,54 @@ namespace BurnSystems.HexView.Universal
             this.CurrentlySelected = m;
 
             this.OnSelectionChanged(m);
+        }*/
+
+        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            this.mainContainer.Invalidate();
+            this.UpdateScrollbarProperties();
         }
 
-        private void UpdateContent()
+        private Vector2 CalculatePosition(int index)
         {
+            var row = index / this.columns;
+            var column = index % this.columns;
+
+            return new Vector2(
+                Convert.ToSingle(column * this.blockSize.X),
+                Convert.ToSingle(row * this.blockSize.Y));
+        }        
+
+        private void scrollBar_Scroll(object sender, ScrollEventArgs e)
+        {
+            this.mainContainer.Invalidate();
+        }
+
+        private void OnSelectionChanged(int index)
+        {
+            var ev = this.SelectionChanged;
+            if (ev != null)
+            {
+                ev(this, new ByteSelectionEventArgs(index));
+            }
+        }
+
+        private void Canvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            var ds = args.DrawingSession;
+
+            var format = new CanvasTextFormat { FontSize = 16, WordWrapping = CanvasWordWrapping.NoWrap, FontFamily="Consolas" };
+            var textLayout = new CanvasTextLayout(ds, "123", format, 0.0f, 0.0f);
+
+            this.blockSize = new Vector2(
+                Convert.ToSingle(textLayout.DrawBounds.Width),
+                Convert.ToSingle(textLayout.DrawBounds.Height + 8));
+            // Creates the elements
+            columns = Convert.ToInt32(Math.Floor(mainContainer.ActualWidth / textLayout.DrawBounds.Width));
+            rows = Convert.ToInt32(Math.Floor(mainContainer.ActualHeight / textLayout.DrawBounds.Height));
+
             // Defines the offset as defined by the scrollbar
             var offset = Convert.ToInt32(Math.Floor(this.scrollBar.Value)) * columns;
-            if (byteBlocks == null)
-            {
-                // Layout not yet created
-                return;
-            }
 
             var amountOfBytes = 0L;
             if (Bytes != null)
@@ -172,13 +177,17 @@ namespace BurnSystems.HexView.Universal
                 amountOfBytes = Bytes.Length;
             }
 
-            var totalElements = byteBlocks.Length;
+            var totalElements = rows * columns;
             for (var n = 0; n < totalElements; n++)
             {
+                var pos = this.CalculatePosition(n);
                 var nByte = n + offset;
                 if (nByte >= amountOfBytes)
                 {
-                    byteBlocks[n].Text = "..";
+                    ds.DrawText("..",
+                        pos,
+                        Colors.Black,
+                        format);
                 }
                 else
                 {
@@ -189,60 +198,14 @@ namespace BurnSystems.HexView.Universal
                     var bigLetter = hexLettersBig[big];
                     var smallLetter = hexLettersBig[small];
 
-                    byteBlocks[n].Text = $"{bigLetter}{smallLetter}";
+                    ds.DrawText($"{bigLetter}{smallLetter}",
+                        pos,
+                        Colors.Black,
+                        format);
                 }
             }
-        }
 
-        private void UpdateScrollbarProperties()
-        {
-            var bytes = Bytes;
-            if (bytes == null || columns <= 0)
-            {
-                this.scrollBar.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            this.scrollBar.Visibility = Visibility.Visible;
-
-            var rowsInScreen = this.rows;
-            var totalRows = bytes.Length / this.columns;
-
-            this.scrollBar.Value = 0;
-            this.scrollBar.Minimum = 0;
-            this.scrollBar.Maximum = totalRows;
-            this.scrollBar.LargeChange = Math.Max(rowsInScreen - 1, 1);
-            this.scrollBar.SmallChange = 1;
-            this.scrollBar.ViewportSize = rowsInScreen;
-        }
-
-        private Size CalculatePosition(int index)
-        {
-            var row = index / this.columns;
-            var column = index % this.columns;
-
-            return new Size(
-                column * this.blockSize.Width,
-                row * this.blockSize.Height);
-        }
-
-        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            RecreateElements(e.NewSize);
-        }
-
-        private void scrollBar_Scroll(object sender, ScrollEventArgs e)
-        {
-            this.UpdateContent();
-        }
-
-        private void OnSelectionChanged(int index)
-        {
-            var ev = this.SelectionChanged;
-            if ( ev != null)
-            {
-                ev(this, new ByteSelectionEventArgs(index));
-            }
+            this.UpdateScrollbarProperties();
         }
     }
 }

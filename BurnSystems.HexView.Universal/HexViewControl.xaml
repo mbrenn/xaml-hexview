@@ -5,6 +5,7 @@
     xmlns:local="using:BurnSystems.HexView.Universal"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
     mc:Ignorable="d"
     d:DesignHeight="300"
     d:DesignWidth="400">
@@ -14,9 +15,8 @@
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <Grid x:Name="mainContainer" SizeChanged="Canvas_SizeChanged">
-            <TextBlock FontFamily="Consolas"></TextBlock>
-        </Grid>
+        <canvas:CanvasControl x:Name="mainContainer" Draw="Canvas_Draw" SizeChanged="Canvas_SizeChanged" />
+
         <ScrollBar Grid.Column="1" 
                    x:Name="scrollBar" Margin="5,0,0,0" 
                    IndicatorMode="MouseIndicator"

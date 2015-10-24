@@ -14,9 +14,9 @@
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <Canvas x:Name="mainContainer" SizeChanged="Canvas_SizeChanged">
+        <Grid x:Name="mainContainer" SizeChanged="Canvas_SizeChanged">
             <TextBlock FontFamily="Consolas"></TextBlock>
-        </Canvas>
+        </Grid>
         <ScrollBar Grid.Column="1" 
                    x:Name="scrollBar" Margin="5,0,0,0" 
                    IndicatorMode="MouseIndicator"

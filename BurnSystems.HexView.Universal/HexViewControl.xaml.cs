@@ -25,7 +25,7 @@ namespace BurnSystems.HexView.Universal
             new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
         static char[] hexLettersBig =
-               new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+            new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         /// <summary>
         /// Gets or sets the bytes to be shown
@@ -74,33 +74,86 @@ namespace BurnSystems.HexView.Universal
         /// <summary>
         /// This event will be thrown, when the user changes the selection
         /// </summary>
-        public event EventHandler SelectionChanged;
+        public event EventHandler<ByteSelectionEventArgs> SelectionChanged;
 
         public HexViewControl()
         {
             InitializeComponent();
         }
 
-        private void UpdateScrollbarProperties()
+        private void RecreateElements(Size newSize)
         {
-            var bytes = Bytes;
-            if (bytes == null || columns <= 0)
+            this.mainContainer.Children.Clear();
+            if (Double.IsNaN(newSize.Width) || Double.IsNaN(newSize.Height))
             {
-                this.scrollBar.Visibility = Visibility.Collapsed;
+                // Nothing to do yet
                 return;
             }
 
-            this.scrollBar.Visibility = Visibility.Visible;
+            // Create an examplary textblock being used to estimate the number of necessary elements
+            this.blockSize = new Size(25, 20);
 
-            var rowsInScreen = this.rows;
-            var totalRows = bytes.Length / this.columns;
+            // Calculates the selection box sizes
+            this.SelectionBox.Width = this.blockSize.Width + 4;
+            this.SelectionBox.Height = this.blockSize.Height + 4;
 
-            this.scrollBar.Value = 0;
-            this.scrollBar.Minimum = 0;
-            this.scrollBar.Maximum = totalRows;
-            this.scrollBar.LargeChange = Math.Max(rowsInScreen - 1,1);
-            this.scrollBar.SmallChange = 1;
-            this.scrollBar.ViewportSize = rowsInScreen;
+            // Creates the elements
+            columns = Convert.ToInt32(Math.Floor(newSize.Width / blockSize.Width));
+            rows = Convert.ToInt32(Math.Floor(newSize.Height / blockSize.Height));
+
+            byteBlocks = new TextBlock[columns * rows];
+            var fontFamily = new FontFamily("Consolas");
+
+            var watch = new Stopwatch();
+            watch.Start();
+            for (var n = 0; n < rows * columns; n++)
+            {
+                var block = new TextBlock();
+                block.Width = blockSize.Width;
+                block.Height = blockSize.Height;
+                mainContainer.Children.Add(block);
+
+                var position = this.CalculatePosition(n);
+                block.Margin = new Thickness(position.Width, position.Height, 0, 0);
+                block.HorizontalAlignment = HorizontalAlignment.Left;
+                block.VerticalAlignment = VerticalAlignment.Top;
+                block.FontFamily = fontFamily;
+
+                int m = n;
+                block.PointerPressed += (x, y) =>
+                {
+                    blockPressed(block, position, m);
+                };
+
+                this.byteBlocks[n] = block;
+            }
+
+            watch.Stop();
+            Debug.WriteLine($"Elapsed: {watch.Elapsed.ToString()}");
+
+            this.UpdateScrollbarProperties();
+            this.UpdateContent();
+        }
+
+        private void blockPressed(TextBlock block, Size position, int m)
+        {
+            // Remove selection of old field
+            if (this.CurrentlySelected != -1)
+            {
+                this.byteBlocks[this.CurrentlySelected].FontWeight =
+                  FontWeights.Normal;
+            }
+
+            this.SelectionBox.Margin = new Thickness(
+                position.Width - 6,
+                position.Height - 3,
+                0, 0);
+
+            this.SelectionBox.Visibility = Visibility.Visible;
+            block.FontWeight = FontWeights.Bold;
+            this.CurrentlySelected = m;
+
+            this.OnSelectionChanged(m);
         }
 
         private void UpdateContent()
@@ -141,9 +194,26 @@ namespace BurnSystems.HexView.Universal
             }
         }
 
-        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void UpdateScrollbarProperties()
         {
-            RecreateElements(e.NewSize);
+            var bytes = Bytes;
+            if (bytes == null || columns <= 0)
+            {
+                this.scrollBar.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            this.scrollBar.Visibility = Visibility.Visible;
+
+            var rowsInScreen = this.rows;
+            var totalRows = bytes.Length / this.columns;
+
+            this.scrollBar.Value = 0;
+            this.scrollBar.Minimum = 0;
+            this.scrollBar.Maximum = totalRows;
+            this.scrollBar.LargeChange = Math.Max(rowsInScreen - 1, 1);
+            this.scrollBar.SmallChange = 1;
+            this.scrollBar.ViewportSize = rowsInScreen;
         }
 
         private Size CalculatePosition(int index)
@@ -156,76 +226,9 @@ namespace BurnSystems.HexView.Universal
                 row * this.blockSize.Height);
         }
 
-        private void RecreateElements(Size newSize)
+        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            this.mainContainer.Children.Clear();
-            if (Double.IsNaN(newSize.Width) || Double.IsNaN(newSize.Height))
-            {
-                // Nothing to do yet
-                return;
-            }
-
-            // Create an examplary textblock being used to estimate the number of necessary elements
-            var textBox = new TextBlock();
-            textBox.Text = "999";
-            textBox.FontFamily = new FontFamily("Consolas");
-            textBox.Arrange(new Rect(0, 0, 1000, 1000));
-            textBox.Measure(new Size(1000, 1000));
-            this.blockSize = textBox.DesiredSize;
-
-            // Calculates the selection box sizes
-            this.SelectionBox.Width = this.blockSize.Width + 2;
-            this.SelectionBox.Height = this.blockSize.Height + 2;
-
-            // Creates the elements
-            columns = Convert.ToInt32(Math.Floor(newSize.Width / blockSize.Width));
-            rows = Convert.ToInt32(Math.Floor(newSize.Height / blockSize.Height));
-            
-            byteBlocks = new TextBlock[columns * rows];
-
-            var watch = new Stopwatch();
-            watch.Start();
-            for (var n = 0; n < rows * columns; n++)
-            {
-                var block = new TextBlock();
-                block.Width = blockSize.Width;
-                block.Height = blockSize.Height;
-                mainContainer.Children.Add(block);
-                var position = this.CalculatePosition(n);
-                Canvas.SetLeft(block, position.Width);
-                Canvas.SetTop(block, position.Height);
-                block.Text = "AA ";
-                block.FontFamily = textBox.FontFamily;
-
-                int m = n;
-                block.PointerPressed += (x, y) =>
-                  {
-                      // Remove selection of old field
-                      if (this.CurrentlySelected != -1)
-                      {
-                          this.byteBlocks[this.CurrentlySelected].FontWeight =
-                            FontWeights.Normal;
-                      }
-
-                      this.SelectionBox.Margin = new Thickness(
-                          position.Width - 5,
-                          position.Height - 2,
-                          0, 0);
-                      this.SelectionBox.Visibility = Visibility.Visible;
-                      block.FontWeight = FontWeights.Bold;
-                      this.CurrentlySelected = m;
-
-                      this.OnSelectionChanged(m);
-                  };
-
-                this.byteBlocks[n] = block;
-            }
-
-            watch.Stop();
-            Debug.WriteLine($"Elapsed: {watch.Elapsed.ToString()}");
-
-            this.UpdateScrollbarProperties();
-            this.UpdateContent();
+            RecreateElements(e.NewSize);
         }
 
         private void scrollBar_Scroll(object sender, ScrollEventArgs e)
@@ -238,7 +241,7 @@ namespace BurnSystems.HexView.Universal
             var ev = this.SelectionChanged;
             if ( ev != null)
             {
-                ev(this, EventArgs.Empty);
+                ev(this, new ByteSelectionEventArgs(index));
             }
         }
     }

@@ -15,10 +15,11 @@
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <canvas:CanvasControl x:Name="mainContainer" Draw="Canvas_Draw" SizeChanged="Canvas_SizeChanged" />
+        <canvas:CanvasControl x:Name="mainContainer" Draw="Canvas_Draw" SizeChanged="Canvas_SizeChanged"
+                              PointerPressed="mainContainer_PointerPressed"/>
 
         <ScrollBar Grid.Column="1" 
-                   x:Name="scrollBar" Margin="5,0,0,0" 
+                   x:Name="scrollBar" 
                    IndicatorMode="MouseIndicator"
                    Scroll="scrollBar_Scroll">
         </ScrollBar>

@@ -138,7 +138,36 @@ namespace BurnSystems.HexView.Universal
             return new Vector2(
                 Convert.ToSingle(column * this.blockSize.X),
                 Convert.ToSingle(row * this.blockSize.Y));
-        }        
+        }
+
+        private int CalculateIndex(Vector2 position)
+        {
+            var column = Convert.ToInt32(position.X / this.blockSize.X);
+            var row = Convert.ToInt32(position.Y / this.blockSize.Y);
+
+            return row * columns +column;
+        }
+
+        private void mainContainer_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            var point = e.GetCurrentPoint(this.mainContainer);
+            CurrentlySelected = this.CalculateIndex(
+                new Vector2(
+                    Convert.ToSingle(point.Position.X), 
+                    Convert.ToSingle(point.Position.Y)));
+
+            var realPoint = this.CalculatePosition(CurrentlySelected);
+
+            SelectionBox.Margin = new Thickness(
+                realPoint.X - 6,
+                realPoint.Y - 2,
+                0, 0);
+            SelectionBox.Visibility = Visibility.Visible;
+            SelectionBox.Width = this.blockSize.X + 6;
+            SelectionBox.Height = this.blockSize.Y + 5;
+
+            mainContainer.Invalidate();
+        }
 
         private void scrollBar_Scroll(object sender, ScrollEventArgs e)
         {
@@ -159,6 +188,7 @@ namespace BurnSystems.HexView.Universal
             var ds = args.DrawingSession;
 
             var format = new CanvasTextFormat { FontSize = 16, WordWrapping = CanvasWordWrapping.NoWrap, FontFamily="Consolas" };
+            var boldFormat = new CanvasTextFormat { FontSize = 16, WordWrapping = CanvasWordWrapping.NoWrap, FontFamily = "Consolas", FontWeight = FontWeights.Bold };
             var textLayout = new CanvasTextLayout(ds, "123", format, 0.0f, 0.0f);
 
             this.blockSize = new Vector2(
@@ -198,10 +228,16 @@ namespace BurnSystems.HexView.Universal
                     var bigLetter = hexLettersBig[big];
                     var smallLetter = hexLettersBig[small];
 
+                    var tf = format;
+                    if (CurrentlySelected == n)
+                    {
+                        tf = boldFormat;
+                    }
+
                     ds.DrawText($"{bigLetter}{smallLetter}",
-                        pos,
-                        Colors.Black,
-                        format);
+                            pos,
+                            Colors.Black,
+                            tf);
                 }
             }
 

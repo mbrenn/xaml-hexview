@@ -15,7 +15,7 @@
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <canvas:CanvasControl x:Name="mainContainer" Draw="Canvas_Draw" SizeChanged="Canvas_SizeChanged"
+        <canvas:CanvasControl x:Name="mainContainer" Draw="Canvas_Draw" SizeChanged="mainContainer_SizeChanged"
                               PointerPressed="mainContainer_PointerPressed"/>
 
         <ScrollBar Grid.Column="1" 

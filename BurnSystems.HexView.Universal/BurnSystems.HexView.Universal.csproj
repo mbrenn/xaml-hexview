@@ -107,14 +107,15 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Themes\HexViewControl.xaml.cs">
+    <Compile Include="ByteSelectionEventArgs.cs" />
+    <Compile Include="HexViewControl.xaml.cs">
       <DependentUpon>HexViewControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Content Include="Properties\BurnSystems.HexView.Universal.rd.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Themes\HexViewControl.xaml">
+    <Page Include="HexViewControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

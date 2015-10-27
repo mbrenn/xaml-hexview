@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
@@ -41,10 +42,10 @@ namespace BurnSystems.HexView.Universal
             {
                 SetValue(BytesProperty, value);
                 this.CurrentlySelected = -1;
-                this.UpdateScrollbarProperties();
+                InvalidateHexView();
             }
         }
-        
+
         public int CurrentlySelected
         {
             get;
@@ -66,15 +67,25 @@ namespace BurnSystems.HexView.Universal
             }
         }
 
-        // Using a DependencyProperty as the backing store for FixedColumnCount.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty FixedColumnCountProperty =
-            DependencyProperty.Register("FixedColumnCount", typeof(int), typeof(HexViewControl), new PropertyMetadata(0));
 
-        
+        /// <summary>
+        /// Gets or sets the flag, whether ASCII Translation shall be shown
+        /// </summary>
+        public bool ShowASCIITranslation
+        {
+            get { return (bool)GetValue(ShowASCIITranslationProperty); }
+            set { SetValue(ShowASCIITranslationProperty, value); }
+        }
+
         /// <summary>
         /// Stores the blocksize of an element
         /// </summary>
         private Vector2 blockSize;
+
+        /// <summary>
+        /// Stores the blocksize of a single letter
+        /// </summary>
+        private Vector2 letterSize;
 
         /// <summary>
         /// Stores the number of columns
@@ -89,6 +100,14 @@ namespace BurnSystems.HexView.Universal
         public static readonly DependencyProperty BytesProperty =
             DependencyProperty.Register("Bytes", typeof(byte[]), typeof(HexViewControl), new PropertyMetadata(new byte[] { }));
 
+        // Using a DependencyProperty as the backing store for FixedColumnCount.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty FixedColumnCountProperty =
+            DependencyProperty.Register("FixedColumnCount", typeof(int), typeof(HexViewControl), new PropertyMetadata(0));
+
+        // Using a DependencyProperty as the backing store for ShowASCIITranslation.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty ShowASCIITranslationProperty =
+            DependencyProperty.Register("ShowASCIITranslation", typeof(int), typeof(HexViewControl), new PropertyMetadata(false));
+
         /// <summary>
         /// This event will be thrown, when the user changes the selection
         /// </summary>
@@ -97,6 +116,11 @@ namespace BurnSystems.HexView.Universal
         public HexViewControl()
         {
             InitializeComponent();
+        }
+
+        private void InvalidateHexView()
+        {
+            this.mainContainer.Invalidate();
         }
 
         /// <summary>
@@ -125,7 +149,7 @@ namespace BurnSystems.HexView.Universal
             this.scrollBar.ViewportSize = rowsInScreen;
         }
 
-        private Vector2 CalculatePosition(int index)
+        private Vector2 CalculatePositionForHex(int index)
         {
             var row = index / this.hexColumns;
             var column = index % this.hexColumns;
@@ -135,10 +159,27 @@ namespace BurnSystems.HexView.Universal
                 Convert.ToSingle(row * this.blockSize.Y));
         }
 
+        private Vector2 CalculatePositionForASCII(int index)
+        {
+            var row = index / this.hexColumns;
+            var column = index % this.hexColumns;
+            var offsetFromRight = this.hexColumns - column;
+            var right = this.mainContainer.ActualWidth;
+
+            return new Vector2(
+                Convert.ToSingle(right - (offsetFromRight * this.letterSize.X)),
+                Convert.ToSingle(row * this.blockSize.Y));
+        }
+
         private int CalculateIndex(Vector2 position)
         {
             var column = Convert.ToInt32(position.X / this.blockSize.X);
             var row = Convert.ToInt32(position.Y / this.blockSize.Y);
+
+            if ( column >= hexColumns )
+            {
+                return -1;
+            }
 
             return row * hexColumns +column;
         }
@@ -151,7 +192,7 @@ namespace BurnSystems.HexView.Universal
                     Convert.ToSingle(point.Position.X), 
                     Convert.ToSingle(point.Position.Y)));
 
-            var realPoint = this.CalculatePosition(CurrentlySelected);
+            var realPoint = this.CalculatePositionForHex(CurrentlySelected);
 
             SelectionBox.Margin = new Thickness(
                 realPoint.X - 6,
@@ -161,17 +202,17 @@ namespace BurnSystems.HexView.Universal
             SelectionBox.Width = this.blockSize.X + 6;
             SelectionBox.Height = this.blockSize.Y + 5;
 
-            mainContainer.Invalidate();
+            this.InvalidateHexView();
         }
 
         private void mainContainer_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            this.mainContainer.Invalidate();
+            this.InvalidateHexView();
         }
 
         private void scrollBar_Scroll(object sender, ScrollEventArgs e)
         {
-            this.mainContainer.Invalidate();
+            this.InvalidateHexView();
         }
 
         private void OnSelectionChanged(int index)
@@ -194,13 +235,19 @@ namespace BurnSystems.HexView.Universal
 
             var format = new CanvasTextFormat { FontSize = 16, WordWrapping = CanvasWordWrapping.NoWrap, FontFamily = "Consolas" };
             var boldFormat = new CanvasTextFormat { FontSize = 16, WordWrapping = CanvasWordWrapping.NoWrap, FontFamily = "Consolas", FontWeight = FontWeights.Bold };
-            var textLayout = new CanvasTextLayout(ds, "123", format, 0.0f, 0.0f);
+            var textLayout = new CanvasTextLayout(ds, "W", format, 0.0f, 0.0f);
+
+            this.letterSize =
+                new Vector2(
+                    Convert.ToSingle(textLayout.DrawBounds.Width),
+                    Convert.ToSingle(textLayout.DrawBounds.Height));
 
             this.blockSize = new Vector2(
-                Convert.ToSingle(textLayout.DrawBounds.Width),
-                Convert.ToSingle(textLayout.DrawBounds.Height + 8));
+                Convert.ToSingle(letterSize.X * 3),
+                Convert.ToSingle(letterSize.Y + 8));
 
             var totalElements = CalculateRowsAndColumns(textLayout);
+            var showAscii = this.ShowASCIITranslation;
 
             // Defines the offset for data as defined by the scrollbar
             var offset = Convert.ToInt32(Math.Floor(this.scrollBar.Value)) * hexColumns;
@@ -212,9 +259,11 @@ namespace BurnSystems.HexView.Universal
                 amountOfBytes = Bytes.Length;
             }
 
+            // Draw the bytes themselves
             for (var n = 0; n < totalElements; n++)
             {
-                var pos = this.CalculatePosition(n);
+                var pos = this.CalculatePositionForHex(n);
+                var posASCII = this.CalculatePositionForASCII(n);
                 var nByte = n + offset;
                 if (nByte >= amountOfBytes)
                 {
@@ -222,6 +271,15 @@ namespace BurnSystems.HexView.Universal
                         pos,
                         Colors.Black,
                         format);
+
+                    if (showAscii)
+                    {
+                        ds.DrawText(
+                            ".",
+                            posASCII,
+                            Colors.Black,
+                            format);
+                    }
                 }
                 else
                 {
@@ -237,6 +295,15 @@ namespace BurnSystems.HexView.Universal
                             pos,
                             Colors.Black,
                             tf);
+
+                    if (showAscii)
+                    {
+                        ds.DrawText(
+                            new string(new char[] { ConvertToASCII(Bytes[nByte]) }),
+                            posASCII,
+                            Colors.Black,
+                            tf);
+                    }
                 }
             }
 
@@ -257,9 +324,15 @@ namespace BurnSystems.HexView.Universal
 
         private int CalculateRowsAndColumns(CanvasTextLayout textLayout)
         {
+            var effectiveSize = this.blockSize;
+            if ( this.ShowASCIITranslation)
+            {
+                effectiveSize.X += this.letterSize.X;
+            }
+
             // Calculates the number of columns and rows in the view
-            hexColumns = Convert.ToInt32(Math.Floor(mainContainer.ActualWidth / textLayout.DrawBounds.Width));
-            hexRows = Convert.ToInt32(Math.Floor(mainContainer.ActualHeight / textLayout.DrawBounds.Height));
+            hexColumns = Convert.ToInt32(Math.Floor(mainContainer.ActualWidth / effectiveSize.X));
+            hexRows = Convert.ToInt32(Math.Floor(mainContainer.ActualHeight / effectiveSize.Y));
 
             // Checks., if the number of columns need to be reduced according to property FieldColumns
             if (this.FixedColumnCount != 0 && this.FixedColumnCount < hexColumns)
@@ -269,6 +342,25 @@ namespace BurnSystems.HexView.Universal
 
             var totalElements = hexRows * hexColumns;
             return totalElements;
+        }
+
+        private static Encoding ISO8859 = System.Text.Encoding.GetEncoding("iso-8859-1");
+
+        /// <summary>
+        /// Converts the given byte to an ASCII character
+        /// </summary>
+        /// <param name="value">Value to be converted</param>
+        /// <returns>Converted character</returns>
+        private static char ConvertToASCII(byte value)
+        {
+            /*if (value < 32 || value >= 127)
+            {
+                return '.';
+            }
+            else*/
+            {
+                return ISO8859.GetChars(new byte[] { value })[0];
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI.Xaml;
@@ -25,16 +26,23 @@ namespace BurnSystems.HexView.Universal.App
         public MainPage()
         {
             this.InitializeComponent();
-            ByteView0.Bytes = new byte[] { 0x01, 0x02, 0x03, 0x40 };
+            ByteView0.Bytes = new byte[] { 0x33, 0x34, 0x35, 0x37 };
 
             var amount = 256 * 4;
             var otherBytes = new byte[amount];
-            for ( var n = 0; n < amount; n++)
+            for (var n = 0; n < amount; n++)
             {
                 otherBytes[n] = (byte)n;
             }
 
             ByteView2.Bytes = otherBytes;
+        }
+
+        private void txtTestString_KeyUp(object sender, KeyRoutedEventArgs e)
+        {
+            var text = txtTestString.Text;
+            ByteView0.Bytes = Encoding.ASCII.GetBytes(text);
+            ByteView2.Bytes = Encoding.UTF8.GetBytes(text);
         }
     }
 }

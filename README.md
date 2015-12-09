@@ -15,7 +15,10 @@ representation of the byte array.
 
 # Usage via NuGet
 
-Download the following package: **BurnSystems-HexView-Universal** via nuget. 
+Download the following package: **BurnSystems.HexView.Universal** via nuget. 
+
+- https://www.nuget.org/packages/BurnSystems.HexView.Universal/
+- or via PowerShell: Install-Package BurnSystems.HexView.Universal
 
 # Manual Usage 
 

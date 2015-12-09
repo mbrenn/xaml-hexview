@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("BurnSystems.HexView.Universal")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("The hexview is a xaml-control element which receives an array of bytes and displays it as a hex-view where each byte represents two hexadecimal figures. ")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Martin Brenn")]
 [assembly: AssemblyProduct("BurnSystems.HexView.Universal")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]

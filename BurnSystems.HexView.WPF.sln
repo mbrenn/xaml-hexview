@@ -9,6 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BurnSystems.HexView.Univers
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Project", "Project", "{6D71A0C5-0A31-4FF9-9EBC-825C6DD75E68}"
 	ProjectSection(SolutionItems) = preProject
+		License.md = License.md
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -53,6 +54,8 @@ Global
 		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Debug|x86.Build.0 = Debug|x86
 		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Debug|x86.Deploy.0 = Debug|x86
 		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Release|Any CPU.ActiveCfg = Release|x86
+		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Release|Any CPU.Build.0 = Release|x86
+		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Release|Any CPU.Deploy.0 = Release|x86
 		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Release|ARM.ActiveCfg = Release|ARM
 		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Release|ARM.Build.0 = Release|ARM
 		{968F6581-D314-4F6D-B402-5A5C49ED3C41}.Release|ARM.Deploy.0 = Release|ARM
